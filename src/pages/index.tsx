@@ -16,17 +16,24 @@ import plutusScript from "../data/plutus.json"
 
 const Home: NextPage = () => {
   const { connected, wallet } = useWallet();
-  const [assets, setAssets] = useState<null | any>(null);
+  const [assets, setAssets] = useState<null | List>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [utxos, setUtxos] = useState<null | any>(null);
+
+  const [address, setAddress ] = useState<string>("");
+  const [value, setValue] = useState<number>(0);
+  const [hash, setHash] = useState<string>("")
 
   async function getAssets() {
     if (wallet) {
       setLoading(true);
       const _assets = await wallet.getAssets();
       setAssets(_assets);
+      console.log(assets);
       setLoading(false);
+      
     }
+    
   }
 
   async function getUtxos() {
@@ -40,6 +47,23 @@ const Home: NextPage = () => {
     }
   }
 
+  async function sendAda(){
+    if(wallet){
+      try{
+        const tx = new Transaction({initiator: wallet})
+      .sendLovelace(address, (value * 1000000).toString())
+
+      const unsignedTx = await tx.build()
+      const signedTx = await wallet.signTx(unsignedTx)
+      const txHash = await wallet.submitTx(signedTx)
+      setHash(txHash)
+      } catch (error: any){
+        console.log(error)
+      setHash(error)
+      }
+    }
+  }
+
   return (
     <div>
       <h1>Connect Wallet</h1>
@@ -47,11 +71,15 @@ const Home: NextPage = () => {
       {connected && (
         <>
           <h1>Get Wallet Assets</h1>
+         
           {assets ? (
             <pre>
-              <code className="language-js">
-                {JSON.stringify(assets, null, 2)}
-              </code>
+              {assets.map((asset: Object) =>
+                <li key={asset.policyID}  className="language-js">
+                  {asset.assetName}
+                </li>
+              )}
+             
             </pre>
           ) : (
             <button
@@ -66,7 +94,7 @@ const Home: NextPage = () => {
               Get Wallet Assets
             </button>
           )}
-          <div>
+          
             {utxos? (
               <pre>
                 <code className="language-js">
@@ -79,12 +107,27 @@ const Home: NextPage = () => {
               </button>
 
             )}
-          </div>
+        <section>
+          <h2>Send Ada to address </h2>
+          <h3>address</h3>
+          <input type="string" onChange={e => {setAddress(e.target.value)}} value={address} ></input>
+          <p>{address}</p>
+          <h3>value</h3>
+          <input type="number" onChange={e => {setValue(e.target.value)}} value={value} ></input>
+          <button type="button" onClick={() => sendAda()} >send Ada</button>
+          <p>{hash? JSON.stringify(hash): null }</p>
+      </section>
 
-        </>
+
+
+            </>
+      
+
       )}
+
+
     </div>
   )
-};
+}
 
 export default Home;
